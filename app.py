@@ -66,14 +66,28 @@ if st.button("🔮 Predict Structure"):
             phi_rad = np.arctan2(sin_phi, cos_phi)
             psi_rad = np.arctan2(sin_psi, cos_psi)
 
-            # Simple 3D backbone visualization
+            # ======================================================
+            # 3D Visualization — Connected Backbone (spheres + cylinders)
+            # ======================================================
             view = py3Dmol.view(width=500, height=500)
+
+            # Add spheres for residues
             for i in range(len(seq_input)):
                 view.addSphere({
                     'center': {'x': i, 'y': 0, 'z': 0},
                     'radius': 0.2,
                     'color': f'#{hex(255 - int(i*10)%255)[2:]}0000'
                 })
+
+            # Connect consecutive residues with cylinders
+            for i in range(len(seq_input)-1):
+                view.addCylinder({
+                    'start': {'x': i, 'y': 0, 'z': 0},
+                    'end':   {'x': i+1, 'y': 0, 'z': 0},
+                    'radius': 0.05,
+                    'color': 'grey'
+                })
+
             view.zoomTo()
             st.components.v1.html(view._make_html(), height=500)
 
