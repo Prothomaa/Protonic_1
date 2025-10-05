@@ -3,10 +3,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 import py3Dmol
-import sidechainnet as scn
 
 # ======================================================
-# 1️⃣ MODEL DEFINITION (same as your training model)
+# 1️⃣ MODEL DEFINITION (same as your trained model)
 # ======================================================
 AA_LIST = "ACDEFGHIKLMNPQRSTVWY"
 AA2IDX = {aa: i+1 for i, aa in enumerate(AA_LIST)}  # 0 reserved for padding
@@ -59,37 +58,32 @@ if st.button("🔮 Predict Structure"):
         st.warning("Please enter a valid amino acid sequence.")
     else:
         with st.spinner("Running trained model..."):
+            # Predict angles
             seq_tensor = sequence_to_tensor(seq_input.strip(), device)
             with torch.no_grad():
                 preds = model(seq_tensor).cpu().numpy()[0]   # (L, 4)
-            
-            # Convert sin/cos → angles
             cos_phi, cos_psi, sin_phi, sin_psi = preds[:,0], preds[:,1], preds[:,2], preds[:,3]
             phi_rad = np.arctan2(sin_phi, cos_phi)
             psi_rad = np.arctan2(sin_psi, cos_psi)
-            
-            # Make a fake SidechainNet protein for visualization
-            dataloaders = scn.load(casp_version=12, thinning=30)
-            prot_example = dataloaders['valid-10'][0].copy()
-            L = min(len(prot_example.seq), len(seq_input))
-            new_angles = prot_example.angles.copy()
-            new_angles[:L, 0] = np.rad2deg(phi_rad[:L])
-            new_angles[:L, 1] = np.rad2deg(psi_rad[:L])
-            prot_example.angles = new_angles
-            prot_example.fastbuild(inplace=True)
-            
-            # Show 3D visualization
-            view = py3Dmol.view(query='pdb:1CRN')
-            view.setStyle({'cartoon': {'color': 'spectrum'}})
+
+            # Simple 3D backbone visualization
+            view = py3Dmol.view(width=500, height=500)
+            for i in range(len(seq_input)):
+                view.addSphere({
+                    'center': {'x': i, 'y': 0, 'z': 0},
+                    'radius': 0.2,
+                    'color': f'#{hex(255 - int(i*10)%255)[2:]}0000'
+                })
             view.zoomTo()
             st.components.v1.html(view._make_html(), height=500)
-            
+
+            # Show torsion angles in table
             st.success("✅ Structure prediction complete!")
             st.write("Predicted torsion angles (°):")
             st.dataframe({
-                "Residue": np.arange(1, L+1),
-                "ϕ (phi)": np.rad2deg(phi_rad[:L]),
-                "ψ (psi)": np.rad2deg(psi_rad[:L])
+                "Residue": np.arange(1, len(seq_input)+1),
+                "ϕ (phi)": np.rad2deg(phi_rad),
+                "ψ (psi)": np.rad2deg(psi_rad)
             })
 
 # ======================================================
