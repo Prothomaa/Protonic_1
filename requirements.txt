@@ -1,0 +1,5 @@
+streamlit
+torch
+sidechainnet
+py3Dmol
+numpy
