@@ -3,3 +3,4 @@ torch
 sidechainnet
 py3Dmol
 numpy
+openmm
